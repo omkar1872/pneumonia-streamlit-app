@@ -1,30 +1,35 @@
 import streamlit as st
 import numpy as np
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
 from PIL import Image
+from tensorflow.keras.models import load_model
+from tensorflow.keras.applications import EfficientNetB0
+from tensorflow.keras.preprocessing.image import img_to_array
 
-# Load the model saved in modern format (.keras)
-model = load_model("pneumonia_model.keras")
+# Load the .keras model with EfficientNetB0 as a custom object
+model = load_model("pneumonia_model.keras", custom_objects={"EfficientNetB0": EfficientNetB0})
 
-st.title("Pneumonia Detection from Chest X-ray")
-uploaded_file = st.file_uploader("Upload a chest X-ray image", type=["jpg", "jpeg", "png"])
+# Streamlit UI
+st.title("🩺 Pneumonia Detection from Chest X-ray")
+st.markdown("Upload a chest X-ray image to detect signs of **pneumonia**.")
+
+# Upload image
+uploaded_file = st.file_uploader("Upload X-ray Image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    img = Image.open(uploaded_file).convert("RGB")
-    st.image(img, caption="Uploaded Image", use_column_width=True)
+    # Read and display image
+    image_data = Image.open(uploaded_file).convert("RGB")
+    st.image(image_data, caption="Uploaded Image", use_column_width=True)
 
-    # Preprocess image
-    img = img.resize((224, 224))  # Resize to match model input
-    x = image.img_to_array(img)
-    x = np.expand_dims(x, axis=0)
-    x = x / 255.0  # Normalize
+    # Preprocess the image
+    image_resized = image_data.resize((224, 224))  # Adjust size if needed
+    image_array = img_to_array(image_resized) / 255.0
+    image_array = np.expand_dims(image_array, axis=0)
 
-    # Predict
-    prediction = model.predict(x)
+    # Make prediction
+    prediction = model.predict(image_array)[0][0]
 
-    # Output result
-    if prediction[0][0] > 0.5:
+    # Display result
+    if prediction > 0.5:
         st.error("Prediction: Pneumonia Detected 😷")
     else:
         st.success("Prediction: Normal Chest X-ray ✅")
